@@ -67,14 +67,36 @@ G20.svg = (tag, attributes, parent) => {
   if (parent) parent.appendChild(element);
   return element;
 };
-G20.tooltip = (svg, text, x, y) => {
+G20.tooltip = (svg, content, x, y) => {
   G20.hideTooltip();
+  const container = svg.parentElement;
   const tip = document.createElement('div');
   tip.className = 'tooltip';
-  tip.textContent = text;
-  svg.parentElement.appendChild(tip);
-  tip.style.left = `${x}px`;
-  tip.style.top = `${y}px`;
+  if (typeof content === 'string' && /<[a-z][\s\S]*>/i.test(content)) {
+    tip.innerHTML = content;
+  } else {
+    tip.textContent = content;
+  }
+  container.appendChild(tip);
+
+  const containerRect = container.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  let left = x;
+  let top = y - 14;
+
+  const halfWidth = tipRect.width / 2;
+  if (left - halfWidth < 10) left = halfWidth + 10;
+  else if (left + halfWidth > containerRect.width - 10) left = containerRect.width - halfWidth - 10;
+
+  if (top - tipRect.height < 10) {
+    top = y + tipRect.height + 16;
+    tip.classList.add('tooltip-below');
+  }
+
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+  tip.style.zIndex = '9999';
+  tip.style.pointerEvents = 'none';
 };
 G20.hideTooltip = () => document.querySelectorAll('.tooltip').forEach(tip => tip.remove());
 G20.options = (selector, values) => {

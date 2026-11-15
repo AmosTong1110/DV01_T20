@@ -57,6 +57,8 @@
           </label>
         </div>
 
+        <div class="roaduser-legend" id="q1Legend" aria-label="Road user legend (click to highlight)"></div>
+
         <div class="chart-shell line-chart-shell">
           <svg
             id="lineChart"
@@ -64,7 +66,12 @@
             aria-label="Multi-line chart of hospitalisations by road user and year"
           ></svg>
         </div>
-        <p class="chart-note">Select a road-user type to bring its line forward; the other categories remain visible for comparison.</p>
+        <div class="timeline-notes">
+          <span class="timeline-tag"><strong>2012:</strong> Victoria admission rule change</span>
+          <span class="timeline-tag"><strong>June 2017:</strong> NSW counting rule change</span>
+          <span class="timeline-tag"><strong>2020:</strong> COVID-19 pandemic mobility dip</span>
+        </div>
+        <p class="chart-note">Click any road-user button above or use the dropdown to isolate its trend line. Hover over any point to inspect hospitalisations, % change since 2011, and counting changes.</p>
         <p class="insight" id="q1Insight"></p>
       </article>
 
@@ -88,14 +95,18 @@
             <output id="q2YearValue">2021</output>
           </label>
         </div>
+        <div class="chart-callout-note">
+          <strong>Understanding "Share":</strong> The percentage of all hospitalised road injuries within that jurisdiction accounted for by the selected road user. This metric highlights the relative mix of road user types across jurisdictions regardless of state population size.
+        </div>
         <div class="chart-shell map-shell">
           <svg
             id="mapChart"
             role="img"
             aria-label="Choropleth map of Australian state and territory injury shares"
           ></svg>
-          <div class="legend" id="mapLegend"></div>
         </div>
+        <div class="map-legend-bar" id="mapLegend"></div>
+        <p class="chart-note"><strong>Population differences:</strong> NSW (~8.1M) and Victoria (~6.6M) record more absolute injuries than smaller jurisdictions like the NT (~250k). Hover over each jurisdiction to view absolute counts and rates per 100,000 residents.</p>
         <p class="insight" id="q2Insight"></p>
       </article>
 
@@ -115,12 +126,26 @@
             <output id="q3YearValue">2021</output>
           </label>
         </div>
-        <div class="chart-shell">
+        <div class="chart-shell stacked-chart-shell">
           <svg
             id="stackedChart"
             role="img"
             aria-label="100 percent stacked bars comparing remoteness by First Nations status"
           ></svg>
+        </div>
+        <div class="remoteness-def-grid">
+          <div class="remoteness-def-item">
+            <strong><span class="def-dot" style="background:#1e293b"></span>Major Cities</strong>
+            <p>Urban centres with high population and infrastructure density, offering rapid access to specialised tertiary trauma hospitals.</p>
+          </div>
+          <div class="remoteness-def-item">
+            <strong><span class="def-dot" style="background:#2563eb"></span>Regional</strong>
+            <p>Inner and outer regional zones with intermediate service accessibility, longer transit distances, and higher open-road travel speeds.</p>
+          </div>
+          <div class="remoteness-def-item">
+            <strong><span class="def-dot" style="background:#dc2626"></span>Remote</strong>
+            <p>Remote and very remote areas with severe geographic isolation, unsealed or high-speed roads, and extended emergency medical evacuation times.</p>
+          </div>
         </div>
         <p class="insight" id="q3Insight"></p>
       </article>
@@ -185,29 +210,15 @@
             <h3>How has the age distribution of people hospitalised due to road traffic injuries changed?</h3>
           </div>
         </div>
-        <div class="toolbar">
-          <label>
-            Show year
-            <input id="q5Year" type="range" min="2011" max="2021" value="2021">
-            <output id="q5YearValue">2021</output>
-          </label>
-        </div>
-        <div class="chart-shell">
+        <div class="age-filter-buttons" id="q5AgeFilter" role="toolbar" aria-label="Filter by age group"></div>
+        <div class="chart-shell area-chart-shell">
           <svg
             id="areaChart"
             role="img"
             aria-label="Stacked area chart of age distribution by year"
           ></svg>
         </div>
-        <div class="age-legend" aria-label="Age group colour legend">
-          <span><i style="background:#086f70"></i>0–7</span>
-          <span><i style="background:#e87b45"></i>8–16</span>
-          <span><i style="background:#477da5"></i>17–25</span>
-          <span><i style="background:#d16d78"></i>26–39</span>
-          <span><i style="background:#8a6fb0"></i>40–64</span>
-          <span><i style="background:#d3a735"></i>65–74</span>
-          <span><i style="background:#527d68"></i>75+</span>
-        </div>
+        <p class="chart-note">Click any age button above to transition the chart to that age group's decade trend, or view the 100% stacked area distribution.</p>
         <p class="insight" id="q5Insight">Shares are calculated across all sexes within each year.</p>
       </article>
     </section>

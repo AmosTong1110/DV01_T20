@@ -12,6 +12,9 @@ window.addEventListener('load', async () => {
     G20.options('#q1Select', ['__all__', ...lineUsers]);
     document.querySelector('#q1Select').options[0].textContent = 'All road users';
     G20.options('#q2Select', mapUsers);
+    if (mapUsers.includes('Car driver, passenger or unknown position')) {
+      document.querySelector('#q2Select').value = 'Car driver, passenger or unknown position';
+    }
     G20.options('#q4Select', scatterUsers);
     G20.options('#q4Sex', ['All', 'Male', 'Female']);
 
@@ -38,12 +41,12 @@ window.addEventListener('load', async () => {
       'q4View',
       'q4Select',
       'q4Year',
-      'q4Sex',
-      'q5Year'
+      'q4Sex'
     ];
 
     controlIds.forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', render);
     });
 
     render();
