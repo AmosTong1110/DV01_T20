@@ -258,7 +258,8 @@ a {
 }
 
 .area-chart-shell {
-  height: 400px;
+  overflow: visible;
+  height: 500px;
 }
 
 /* Chart 5: Age Filter Buttons */
@@ -306,6 +307,42 @@ a {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.area-grid-line {
+  stroke: #596b72;
+  stroke-width: 1;
+  stroke-dasharray: 1.5 4;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.area-axis-text {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.area-axis-title {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.q5-age-area {
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.q5-age-point {
+  cursor: pointer;
+  transition: opacity 0.2s ease, r 0.2s ease;
+}
+
+.q5-age-point:focus-visible {
+  outline: none;
+  stroke: #17232e;
+  stroke-width: 2.5px;
 }
 
 .chart-shell svg {
@@ -799,6 +836,10 @@ footer span:last-child {
 
   .chart-shell {
     height: 270px;
+  }
+
+  .area-chart-shell {
+    height: 420px;
   }
 
   .map-shell {
