@@ -15,11 +15,28 @@ window.renderStackedAreaChart = (function () {
     // Clear the previous drawing and read the chart size and selected year.
     const svg = G20.clear('#areaChart');
     const [width, height] = G20.size(svg);
-    const margin = { left: 75, right: 130, top: 38, bottom: 44 };
+    const margin = { left: 75, right: 35, top: 38, bottom: 44 };
     const yearControl = document.querySelector('#q5Year');
     const selectedYear = Number(yearControl.value);
     const selectedYearIndex = G20.YEARS.indexOf(selectedYear);
+    const selectedAgeIndex = G20.AGE_ORDER.indexOf(selectedAge);
     document.querySelector('#q5YearValue').textContent = selectedYear;
+
+    // Position tooltips to the left of their data point while keeping them onscreen.
+    const showChartTooltip = (text, anchorX, anchorY) => {
+      G20.tooltip(svg, text, anchorX, anchorY);
+      const tooltip = svg.parentElement.querySelector('.tooltip');
+      if (!tooltip) return;
+
+      tooltip.style.whiteSpace = 'normal';
+      tooltip.style.maxWidth = '250px';
+      const tooltipWidth = tooltip.getBoundingClientRect().width;
+      const shellWidth = svg.parentElement.getBoundingClientRect().width;
+      const minCenter = tooltipWidth / 2 + 8;
+      const maxCenter = Math.max(minCenter, shellWidth - tooltipWidth / 2 - 8);
+      const leftCenter = Math.max(minCenter, Math.min(anchorX - tooltipWidth / 2 - 12, maxCenter));
+      tooltip.style.left = `${leftCenter}px`;
+    };
 
     // Sum hospitalisations by year and age group, combining all sexes.
     const annualTotals = G20.YEARS.map(year => {
@@ -41,11 +58,15 @@ window.renderStackedAreaChart = (function () {
     // Convert years and percentages into SVG coordinates.
     const x = year => margin.left + (width - margin.left - margin.right) * (year - 2011) / 10;
 
-    // Keep the percentage scale consistent in both stacked and single-age views.
+    // Keep the full 0-100% scale for all ages; zoom single-age views to their data.
+    const maxShare = selectedAge === 'all'
+      ? 100
+      : Math.max(...stackedShares.map(yearShares => yearShares[selectedAgeIndex]), 0.1);
     const yScale = d3.scaleLinear()
-      .domain([0, 100])
+      .domain([0, maxShare])
+      .nice(5)
       .range([height - margin.bottom, margin.top]);
-    const yTicks = [0, 20, 40, 60, 80, 100];
+    const yTicks = selectedAge === 'all' ? [0, 20, 40, 60, 80, 100] : yScale.ticks(5);
     const yTitle = 'Share of hospitalisations (%)';
 
     // Y-axis grid lines and clean tick labels
@@ -81,16 +102,14 @@ window.renderStackedAreaChart = (function () {
       fill: '#17232e'
     }, svg).textContent = yTitle;
 
-    // Create separate SVG groups to organize areas, lines, points, and labels.
+    // Create SVG groups to organize the area shapes, trend lines, and hover points.
     const areasGroup = G20.svg('g', { class: 'stacked-areas-group' }, svg);
     const linesGroup = G20.svg('g', { class: 'lines-group' }, svg);
     const pointsGroup = G20.svg('g', { class: 'points-group' }, svg);
-    const labelsGroup = G20.svg('g', { class: 'labels-group' }, svg);
 
     if (selectedAge === 'all') {
       // 100% Stacked Area Chart (7 layers)
       let baseShares = Array(11).fill(0);
-      const endLabels = [];
 
       // Build each stacked band on top of the age groups drawn before it.
       G20.AGE_ORDER.forEach((age, ageIdx) => {
@@ -113,12 +132,13 @@ window.renderStackedAreaChart = (function () {
 
         const areaPath = G20.svg('path', {
           d: pathD,
+          'data-age': age,
           fill: ageColor,
           opacity: 0.88,
           stroke: '#ffffff',
           'stroke-width': 1,
           class: `area-layer area-${age}`,
-          style: 'cursor: pointer; transition: opacity 0.2s ease;'
+          style: 'cursor: pointer;'
         }, areasGroup);
 
         // Show this group's share and count for the year selected by the slider.
@@ -127,8 +147,7 @@ window.renderStackedAreaChart = (function () {
           const share = stackedShares[selectedYearIndex][ageIdx];
           const count = ageCounts[selectedYearIndex][ageIdx];
           const tooltipY = yScale(lowerShares[selectedYearIndex] + share / 2);
-          G20.tooltip(
-            svg,
+          showChartTooltip(
             `<strong>Age ${age}</strong><br>${selectedYear} share: <strong>${share.toFixed(1)}%</strong>` +
             `<br>Hospitalisations: <strong>${G20.format(count)}</strong>`,
             x(selectedYear),
@@ -140,50 +159,11 @@ window.renderStackedAreaChart = (function () {
           G20.hideTooltip();
         });
 
-        // Save the 2021 value for a direct label at the right edge of the chart.
-        const midY = (yScale(topShares[10]) + yScale(baseShares[10])) / 2;
-        endLabels.push({
-          age,
-          ageIdx,
-          targetY: midY,
-          text: `${age} (${stackedShares[10][ageIdx].toFixed(1)}%)`
-        });
-
         baseShares = topShares;
-      });
-
-      // Space the 2021 labels apart so even thin bands remain identifiable.
-      endLabels.sort((a, b) => a.targetY - b.targetY);
-      endLabels.forEach((label, index) => {
-        label.y = index
-          ? Math.max(label.targetY, endLabels[index - 1].y + 17)
-          : Math.max(label.targetY, margin.top + 8);
-      });
-      const bottomLimit = height - margin.bottom - 6;
-      const overflow = endLabels[endLabels.length - 1].y - bottomLimit;
-      if (overflow > 0) endLabels.forEach(label => { label.y -= overflow; });
-
-      endLabels.forEach(label => {
-        G20.svg('line', {
-          x1: width - margin.right,
-          y1: label.targetY,
-          x2: width - margin.right + 5,
-          y2: label.y,
-          stroke: G20.COLORS[label.ageIdx],
-          'stroke-width': 1
-        }, labelsGroup);
-        const text = G20.svg('text', {
-          x: width - margin.right + 8,
-          y: label.y + 4,
-          'font-size': '12px',
-          'font-weight': 700,
-          fill: G20.COLORS[label.ageIdx]
-        }, labelsGroup);
-        text.textContent = label.text;
       });
     } else {
       // In a filtered view, show only the selected age group's share over time.
-      const ageIdx = G20.AGE_ORDER.indexOf(selectedAge);
+      const ageIdx = selectedAgeIndex;
       const ageColor = G20.COLORS[ageIdx];
       const singleShares = stackedShares.map(yearShares => yearShares[ageIdx]);
 
@@ -196,6 +176,7 @@ window.renderStackedAreaChart = (function () {
 
       G20.svg('path', {
         d: areaD,
+        'data-age': selectedAge,
         fill: ageColor,
         opacity: 0.35,
         class: 'single-age-area'
@@ -205,6 +186,7 @@ window.renderStackedAreaChart = (function () {
       const linePts = G20.YEARS.map((year, i) => [x(year), yScale(singleShares[i])]);
       G20.svg('polyline', {
         points: linePts.map(pt => pt.join(',')).join(' '),
+        'data-age': selectedAge,
         fill: 'none',
         stroke: ageColor,
         'stroke-width': 3.5,
@@ -234,8 +216,7 @@ window.renderStackedAreaChart = (function () {
         }, pointsGroup);
 
         circle.addEventListener('mouseenter', () => {
-          G20.tooltip(
-            svg,
+          showChartTooltip(
             `<strong>Age Group: ${selectedAge}</strong><br>` +
             `Year: <strong>${year}</strong><br>` +
             `Hospitalisations: <strong>${G20.format(count)}</strong><br>` +
@@ -247,20 +228,6 @@ window.renderStackedAreaChart = (function () {
         });
         circle.addEventListener('mouseleave', G20.hideTooltip);
       });
-
-      // Direct end-label at 2021
-      const lastPt = linePts[linePts.length - 1];
-      const lastCount = ageCounts[ageCounts.length - 1][ageIdx];
-      const lastShare = stackedShares[10][ageIdx];
-      const endLabel = G20.svg('text', {
-        x: lastPt[0] + 8,
-        y: lastPt[1] + 4,
-        'font-size': '12.5px',
-        'font-weight': 750,
-        fill: ageColor,
-        class: 'direct-end-label'
-      }, labelsGroup);
-      endLabel.textContent = `${selectedAge}: ${G20.format(lastCount)} (${lastShare.toFixed(1)}%)`;
     }
 
     // Label each year along the horizontal axis.
@@ -324,18 +291,133 @@ window.renderStackedAreaChart = (function () {
       });
     }
 
-    // Fade the chart out and back in when switching age views.
+    // Morph the existing area shapes into the newly selected age view.
     function animateAgeChart() {
-      const areaSvg = d3.select('#areaChart');
-      areaSvg.transition()
-        .duration(200)
-        .style('opacity', 0.25)
-        .on('end', () => {
-          window.renderStackedAreaChart(cachedData);
-          areaSvg.transition()
-            .duration(350)
-            .style('opacity', 1);
+      G20.hideTooltip();
+      const previousAreas = new Map(
+        [...svg.querySelectorAll('path.area-layer')].map(path => [path.dataset.age, {
+          d: path.getAttribute('d'),
+          fill: path.getAttribute('fill'),
+          opacity: path.getAttribute('opacity')
+        }])
+      );
+      const oldSingleArea = svg.querySelector('path.single-age-area');
+      const previousSingleArea = oldSingleArea ? {
+        age: oldSingleArea.dataset.age,
+        d: oldSingleArea.getAttribute('d'),
+        fill: oldSingleArea.getAttribute('fill'),
+        opacity: oldSingleArea.getAttribute('opacity')
+      } : null;
+      const oldSingleLine = svg.querySelector('polyline.single-age-line');
+      const previousLine = oldSingleLine ? {
+        points: oldSingleLine.getAttribute('points'),
+        stroke: oldSingleLine.getAttribute('stroke')
+      } : null;
+
+      // Use a collapsed polygon as the starting shape for age groups entering the chart.
+      const baselineY = height - margin.bottom;
+      const collapsedPoints = [
+        ...G20.YEARS.map(year => [x(year), baselineY]),
+        ...G20.YEARS.slice().reverse().map(year => [x(year), baselineY])
+      ];
+      const collapsedArea = `${collapsedPoints
+        .map((point, index) => `${index ? 'L' : 'M'}${point[0]},${point[1]}`).join(' ')}Z`;
+
+      window.renderStackedAreaChart(cachedData);
+
+      const duration = 600;
+      const ease = d3.easeCubicInOut;
+      if (selectedAge !== 'all') {
+        const areaGroup = svg.querySelector('.stacked-areas-group');
+        previousAreas.forEach((previous, age) => {
+          if (age === selectedAge) return;
+          const exitingArea = G20.svg('path', {
+            d: previous.d,
+            fill: previous.fill,
+            opacity: previous.opacity,
+            stroke: '#ffffff',
+            'stroke-width': 1,
+            class: 'area-layer-exit',
+            style: 'pointer-events: none;'
+          }, areaGroup);
+          areaGroup.insertBefore(exitingArea, areaGroup.firstChild);
+          d3.select(exitingArea).transition()
+            .duration(duration)
+            .ease(ease)
+            .attr('d', collapsedArea)
+            .attr('opacity', 0)
+            .remove();
         });
+      }
+
+      const shapes = [...svg.querySelectorAll('path.area-layer, path.single-age-area')];
+      shapes.forEach(path => {
+        const targetD = path.getAttribute('d');
+        const targetFill = path.getAttribute('fill');
+        const targetOpacity = path.getAttribute('opacity');
+        const isSingleArea = path.classList.contains('single-age-area');
+        const previous = isSingleArea
+          ? previousSingleArea || previousAreas.get(path.dataset.age)
+          : previousAreas.get(path.dataset.age) ||
+            (previousSingleArea && previousSingleArea.age === path.dataset.age ? previousSingleArea : null);
+
+        path.setAttribute('d', previous ? previous.d : collapsedArea);
+        path.setAttribute('fill', previous ? previous.fill : targetFill);
+        path.setAttribute('opacity', previous ? previous.opacity : 0);
+        d3.select(path).interrupt().transition()
+          .duration(duration)
+          .ease(ease)
+          .attr('d', targetD)
+          .attr('fill', targetFill)
+          .attr('opacity', targetOpacity);
+      });
+
+      const line = svg.querySelector('polyline.single-age-line');
+      if (line) {
+        const targetPoints = line.getAttribute('points');
+        const targetStroke = line.getAttribute('stroke');
+        const previousArea = previousAreas.get(line.dataset.age);
+        // When leaving the stacked view, trace the selected band's upper edge into a line.
+        const previousTopLine = previousArea
+          ? (previousArea.d.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) || [])
+            .slice(0, G20.YEARS.length * 2)
+            .reduce((points, value, index, values) => {
+              if (index % 2 === 0) points.push(`${value},${values[index + 1]}`);
+              return points;
+            }, [])
+            .join(' ')
+          : null;
+
+        if (previousLine) {
+          line.setAttribute('points', previousLine.points);
+          line.setAttribute('stroke', previousLine.stroke);
+        } else if (previousTopLine) {
+          line.setAttribute('points', previousTopLine);
+          line.setAttribute('stroke', previousArea.fill);
+          line.style.opacity = 0.6;
+        }
+        d3.select(line).interrupt().transition()
+          .duration(duration)
+          .ease(ease)
+          .attr('points', targetPoints)
+          .attr('stroke', targetStroke)
+          .style('opacity', 1);
+      } else if (previousLine) {
+        const exitLine = G20.svg('polyline', {
+          points: previousLine.points,
+          fill: 'none',
+          stroke: previousLine.stroke,
+          'stroke-width': 3.5,
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          class: 'single-age-line-exit'
+        }, svg.querySelector('.lines-group'));
+        d3.select(exitLine).transition()
+          .duration(duration)
+          .ease(ease)
+          .style('opacity', 0)
+          .remove();
+      }
     }
 
     // Update the text summary to match the selected year and age view.
@@ -373,7 +455,7 @@ window.renderStackedAreaChart = (function () {
         }
       } else {
         // For one age group, compare its selected-year count with 2011 and 2021.
-        const ageIdx = G20.AGE_ORDER.indexOf(selectedAge);
+        const ageIdx = selectedAgeIndex;
         const count2011 = ageCounts[0][ageIdx];
         const count2021 = ageCounts[10][ageIdx];
         const countYear = ageCounts[selectedYearIndex][ageIdx];
