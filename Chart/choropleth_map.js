@@ -236,15 +236,9 @@ window.renderChoroplethMap = function (data) {
         tooltipHtml += `<small style="color:#94a3b8">${user} · ${year}</small><br>`;
 
         if (isPublished) {
-          const userRate = population ? ((userCases / population) * 100000).toFixed(1) : '—';
-          const totalRate = population ? ((totalStateCases / population) * 100000).toFixed(1) : '—';
-
           tooltipHtml += `Road user injuries: <strong>${G20.format(userCases)}</strong><br>`;
           tooltipHtml += `State total road injuries: <strong>${G20.format(totalStateCases)}</strong><br>`;
-          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong><br>`;
-          tooltipHtml += `<hr style="margin:5px 0; border:0; border-top:1px solid #334155">`;
-          tooltipHtml += `<small style="color:#cbd5e1">Population: ~${(population / 1000000).toFixed(2)}M<br>`;
-          tooltipHtml += `Rate: <strong>${userRate}</strong> per 100k (${totalRate} per 100k total)</small>`;
+          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong>`;
         } else {
           tooltipHtml += `<span style="color:#f87171">Status: Not published</span><br>`;
           tooltipHtml += `<small style="color:#cbd5e1">Data suppressed by AIHW/BITRE to protect privacy for small cell counts.</small>`;
