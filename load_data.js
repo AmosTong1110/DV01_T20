@@ -9,7 +9,8 @@ G20.FILES = {
 };
 G20.YEARS = Array.from({ length: 11 }, (_, i) => 2011 + i);
 G20.AGE_ORDER = ['0-7', '8-16', '17-25', '26-39', '40-64', '65-74', '75+'];
-G20.COLORS = ['#086f70', '#e87b45', '#477da5', '#d16d78', '#8a6fb0', '#d3a735', '#527d68'];
+G20.COLORS = ['#fe0606', '#0072B2', '#e65c00', '#aa0abc', '#009E73', '#666666', '#F0E442'];
+
 
 G20.parseCSV = function (text) {
   const rows = [], headers = [];
