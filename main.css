@@ -114,7 +114,7 @@ a {
   color: var(--chocolate-dark);
   font-size: 27px;
   font-family: Garamond, serif;
-  line-height: 0.55;
+  line-height: 1.2;
   margin-bottom: 3px;
 }
 
@@ -822,6 +822,7 @@ footer span:last-child {
 
   .hero-stat {
     margin-top: 42px;
+    transform: none;
   }
 
   .explore {
@@ -857,6 +858,9 @@ footer span:last-child {
   }
 
   .hero h1 {
-    font-size: 52px;
+    font-size: clamp(36px, 11vw, 52px);
+  }
+    .lede {
+    font-size: clamp(21px, 6vw, 27px);
   }
 }
