@@ -1,5 +1,5 @@
 window.G20 = window.G20 || {};
-G20.DATA_DIR = 'Knime Data/';
+G20.DATA_DIR = 'Knime%20Data/';
 G20.FILES = {
   line: 'chart1_road_user_by_year.csv',
   map: 'chart2_state_road_user_share.csv',
