@@ -27,6 +27,12 @@ window.renderStackedAreaChart = (function () {
     const shares = counts.map((yearCounts, yearIndex) =>
       yearCounts.map(count => totals[yearIndex] ? count / totals[yearIndex] * 100 : 0)
     );
+    const averageShares = G20.AGE_ORDER.map((age, ageIndex) => ({
+      age,
+      share: shares.slice(1).reduce((area, yearShares, yearIndex) =>
+        area + (shares[yearIndex][ageIndex] + yearShares[ageIndex]) / 2, 0
+      ) / (shares.length - 1)
+    }));
     const stackData = G20.YEARS.map((year, yearIndex) => {
       const row = { year };
       G20.AGE_ORDER.forEach((age, ageIndex) => {
@@ -54,15 +60,42 @@ window.renderStackedAreaChart = (function () {
 
     // Draw the colored area bands with transparency so the grid remains visible.
     layers.forEach(layer => {
-      G20.svg('path', {
+      const ageIndex = G20.AGE_ORDER.indexOf(layer.key);
+      const path = G20.svg('path', {
         d: area(layer),
         fill: colors(layer.key),
         opacity: 0.55,
         stroke: '#ffffff',
         'stroke-width': 0.8,
-        class: 'q5-age-area',
+        class: selectedAge === 'all'
+          ? 'q5-age-area q5-age-area-interactive'
+          : 'q5-age-area',
         'data-age': layer.key
       }, svg);
+
+      if (selectedAge === 'all') {
+        path.style.pointerEvents = 'all';
+        path.addEventListener('pointerenter', event => {
+          svg.querySelectorAll('.q5-age-area').forEach(areaPath => {
+            areaPath.classList.toggle('is-highlighted', areaPath === path);
+            areaPath.classList.toggle('is-dimmed', areaPath !== path);
+          });
+          const containerRect = svg.parentElement.getBoundingClientRect();
+          G20.tooltip(
+            svg,
+            `<strong>Age ${layer.key}</strong><br>Average yearly share ` +
+            `(2011-2021): <strong>${G20.percent(averageShares[ageIndex].share)}</strong>`,
+            event.clientX - containerRect.left,
+            event.clientY - containerRect.top
+          );
+        });
+        path.addEventListener('pointerleave', () => {
+          svg.querySelectorAll('.q5-age-area').forEach(areaPath => {
+            areaPath.classList.remove('is-highlighted', 'is-dimmed');
+          });
+          G20.hideTooltip();
+        });
+      }
     });
 
     // Draw dotted horizontal guides over the fills and behind the data points.
@@ -196,24 +229,17 @@ window.renderStackedAreaChart = (function () {
       button.setAttribute('aria-pressed', String(active));
     });
 
-    // Summarize the largest endpoint change or the selected group's endpoint shares.
+    // Summarize the largest overall area or the selected group's endpoint shares.
     const insight = document.querySelector('#q5Insight');
     const firstShares = shares[0];
     const lastShares = shares[shares.length - 1];
     if (selectedAgeIndex < 0) {
-      const largestChange = lastShares
-        .map((share, index) => ({ index, change: share - firstShares[index] }))
-        .reduce((largest, change) =>
-          Math.abs(change.change) > Math.abs(largest.change) ? change : largest
-        );
-      const direction = largestChange.change > 0
-        ? 'increased'
-        : largestChange.change < 0 ? 'decreased' : 'did not change';
-      insight.innerHTML = `From 2011 to 2021, <strong>${G20.AGE_ORDER[largestChange.index]}</strong> ` +
-        `had the largest change: its share ${direction} from ` +
-        `<strong>${G20.percent(firstShares[largestChange.index])}</strong> to ` +
-        `<strong>${G20.percent(lastShares[largestChange.index])}</strong> ` +
-        `(<strong>${Math.abs(largestChange.change).toFixed(1)} percentage points</strong>).`;
+      const largestArea = averageShares.reduce((largest, current) =>
+        current.share > largest.share ? current : largest
+      );
+      insight.innerHTML = `Across 2011 to 2021, <strong>${largestArea.age}</strong> had the ` +
+        `largest area overall, averaging <strong>${G20.percent(largestArea.share)}</strong> ` +
+        `of hospitalisations per year.`;
     } else {
       const change = lastShares[selectedAgeIndex] - firstShares[selectedAgeIndex];
       const direction = change > 0 ? 'increased' : change < 0 ? 'decreased' : 'did not change';
@@ -224,3 +250,4 @@ window.renderStackedAreaChart = (function () {
     }
   };
 })();
+
