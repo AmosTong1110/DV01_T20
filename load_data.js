@@ -1,5 +1,5 @@
-window.G20 = window.G20 || {};
-G20.DATA_DIR = 'Knime%20Data/';
+const G20 = (window.G20 = window.G20 || {});
+G20.DATA_DIR = 'knime%20data/';
 G20.FILES = {
   line: 'chart1_road_user_by_year.csv',
   map: 'chart2_state_road_user_share.csv',
@@ -38,12 +38,29 @@ G20.parseCSV = function (text) {
 
 G20.loadData = async function () {
   const entries = Object.entries(G20.FILES);
-  const values = await Promise.all(entries.map(([, file]) =>
-    fetch(G20.DATA_DIR + file).then(response => {
-      if (!response.ok) throw new Error(`Unable to load ${file}`);
-      return response.text();
-    }).then(G20.parseCSV)
-  ));
+  const candidates = [
+    G20.DATA_DIR,
+    'knime%20data/',
+    'knime data/',
+    'Knime%20Data/',
+    'Knime Data/'
+  ];
+
+  async function fetchFile(file) {
+    for (const dir of candidates) {
+      try {
+        const response = await fetch(dir + file);
+        if (response.ok) {
+          return G20.parseCSV(await response.text());
+        }
+      } catch (e) {
+        // try next candidate path
+      }
+    }
+    throw new Error(`Unable to load ${file}`);
+  }
+
+  const values = await Promise.all(entries.map(([, file]) => fetchFile(file)));
   return Object.fromEntries(entries.map(([key], i) => [key, values[i]]));
 };
 
