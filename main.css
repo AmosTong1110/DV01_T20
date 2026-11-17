@@ -315,6 +315,7 @@ a {
   stroke-dasharray: 1.5 4;
   stroke-linecap: round;
   opacity: 0.75;
+  pointer-events: none;
 }
 
 .area-axis-text {
@@ -332,6 +333,18 @@ a {
   stroke-linejoin: round;
   pointer-events: none;
   transition: opacity 0.2s ease;
+}
+
+.q5-age-area-interactive {
+  pointer-events: all;
+}
+
+.q5-age-area.is-highlighted {
+  opacity: 0.9;
+}
+
+.q5-age-area.is-dimmed {
+  opacity: 0.18;
 }
 
 .q5-age-point {
@@ -860,7 +873,8 @@ footer span:last-child {
   .hero h1 {
     font-size: clamp(36px, 11vw, 52px);
   }
-    .lede {
+
+  .lede {
     font-size: clamp(21px, 6vw, 27px);
   }
 }
