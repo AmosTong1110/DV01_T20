@@ -38,36 +38,27 @@ function loadAustralianStates() {
   return australianStates;
 }
 
-// High-intensity color scale (Yellow-Green-Cyan-Cobalt-Navy)
-// Combines luminous bright hues for lower values with saturated electric cyan and deep midnight navy
-const INTENSITY_RAMP = [
-  [237, 248, 177], // 0.0: luminous lime-yellow (#edf8b1)
-  [127, 205, 187], // 0.25: vivid seafoam turquoise (#7fcdbb)
-  [29, 145, 192],  // 0.50: intense electric cyan-blue (#1d91c0)
-  [34, 94, 168],   // 0.75: rich royal cobalt (#225ea8)
-  [8, 29, 88]      // 1.0: deep midnight navy (#081d58)
+// High-contrast, 5-grade stepped color palette for choropleth mapping
+// Ranging from soft lime-yellow (Grade 1) to deep midnight navy (Grade 5)
+const COLOR_GRADES = [
+  '#edf8b1', // Grade 1 (0 – 20% of max): soft lime-yellow
+  '#7fcdbb', // Grade 2 (20 – 40% of max): fresh seafoam turquoise
+  '#1d91c0', // Grade 3 (40 – 60% of max): electric cyan-blue
+  '#225ea8', // Grade 4 (60 – 80% of max): rich royal cobalt
+  '#081d58'  // Grade 5 (80 – 100% of max): deep midnight navy
 ];
 
-function mapColor(value, min, max) {
-  if (max <= min) return '#225ea8';
-  const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
-
-  if (window.d3 && d3.interpolateYlGnBu) {
-    return d3.interpolateYlGnBu(0.1 + 0.9 * ratio);
-  }
-
-  // Piecewise interpolation across the high-intensity ramp
-  const n = INTENSITY_RAMP.length - 1;
-  const scaled = ratio * n;
-  const idx = Math.min(n - 1, Math.floor(scaled));
-  const t = scaled - idx;
-  const c1 = INTENSITY_RAMP[idx];
-  const c2 = INTENSITY_RAMP[idx + 1];
-
-  const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
-  const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
-  const b = Math.round(c1[2] + (c2[2] - c1[2]) * t);
-  return `rgb(${r}, ${g}, ${b})`;
+function getNiceCeil(val) {
+  if (val <= 1.5) return 1.5;
+  if (val <= 3) return 3;
+  if (val <= 6) return 6;
+  if (val <= 12) return 12;
+  if (val <= 15) return 15;
+  if (val <= 25) return 25;
+  if (val <= 35) return 35;
+  if (val <= 50) return 50;
+  if (val <= 60) return 60;
+  return Math.ceil(val / 10) * 10;
 }
 
 window.renderChoroplethMap = function (data) {
@@ -80,11 +71,23 @@ window.renderChoroplethMap = function (data) {
   const year = (yearInput && yearInput.value && !isNaN(+yearInput.value)) ? +yearInput.value : 2021;
   const user = (userSelect && userSelect.value) ? userSelect.value : (data[0]?.['road user'] || 'Car driver, passenger or unknown position');
 
+  // Fixed max percentage across ALL years for the selected road user
+  // Guarantees stable, fixed color grading across years so differences stand out and comparisons are valid
+  const userPublishedAllYears = data.filter(row => row['road user'] === user && row.Status === 'Published');
+  const maxShareAllYears = userPublishedAllYears.length
+    ? Math.max(...userPublishedAllYears.map(row => G20.number(row['Percent share'])))
+    : 1;
+  const maxCeil = getNiceCeil(maxShareAllYears);
+  const step = maxCeil / 5;
+
+  const getGradeIndex = val => {
+    if (val <= 0) return 0;
+    const idx = Math.floor(val / step);
+    return Math.min(4, Math.max(0, idx));
+  };
+
   const rows = data.filter(row => +row['calendar year'] === year && row['road user'] === user);
   const published = rows.filter(row => row.Status === 'Published');
-  const values = published.map(row => G20.number(row['Percent share']));
-  const min = values.length ? Math.min(...values) : 0;
-  const max = values.length ? Math.max(...values) : 1;
 
   const yearOut = document.querySelector('#q2YearValue');
   if (yearOut) yearOut.value = year;
@@ -108,27 +111,28 @@ window.renderChoroplethMap = function (data) {
     'stroke-width': '2.5'
   }, pattern);
 
-  // Gradient colors for high-intensity legend
-  const minColor = mapColor(min, min, max);
-  const midColor = mapColor((min + max) / 2, min, max);
-  const maxColor = mapColor(max, min, max);
-
-  // Update Legend with High-Intensity Gradient Bar and Real Values
+  // Update Legend with Fixed Stepped Color Grading
+  const formatStep = n => (n % 1 === 0 ? n.toFixed(0) : n.toFixed(1));
   const legendElem = document.querySelector('#mapLegend');
   if (legendElem) {
     legendElem.innerHTML = `
       <div class="map-legend-container">
         <div class="legend-header">
-          <strong>Color Intensity: Share of jurisdiction's total road injuries (%)</strong>
+          <strong>Color Grading: Share of jurisdiction's total road injuries (%) — Fixed Scale: 0 to ${formatStep(maxCeil)}%</strong>
         </div>
-        <div class="map-gradient-row">
-          <div class="gradient-bar-wrap">
-            <div class="map-gradient-bar" style="background: linear-gradient(to right, ${minColor}, ${midColor}, ${maxColor});"></div>
-            <div class="map-gradient-ticks">
-              <span>Low: <strong>${min.toFixed(1)}%</strong></span>
-              <span>Mid: <strong>${((min + max) / 2).toFixed(1)}%</strong></span>
-              <span>High: <strong>${max.toFixed(1)}%</strong></span>
-            </div>
+        <div class="map-stepped-legend-row">
+          <div class="map-legend-grades">
+            ${COLOR_GRADES.map((col, i) => {
+              const fromVal = formatStep(i * step);
+              const toVal = formatStep((i + 1) * step);
+              const isDarkSwatch = i >= 3;
+              return `
+                <div class="legend-grade-item">
+                  <span class="grade-swatch" style="background:${col}; border:1px solid ${isDarkSwatch ? 'rgba(0,0,0,0.1)' : '#94a3b8'};"></span>
+                  <span class="grade-label">${fromVal}–${toVal}%</span>
+                </div>
+              `;
+            }).join('')}
           </div>
           <div class="map-legend-np-item">
             <span class="np-hatch-swatch"></span>
@@ -157,10 +161,10 @@ window.renderChoroplethMap = function (data) {
       const shareVal = row ? G20.number(row['Percent share']) : 0;
       const userCases = row ? G20.number(row['road_user_cases']) : 0;
       const totalStateCases = row ? G20.number(row['state_total_cases']) : 0;
-      const population = STATE_POPULATIONS[code] || 0;
+      const gradeIdx = isPublished ? getGradeIndex(shareVal) : -1;
 
-      // High-intensity fill
-      const fillColor = isPublished ? mapColor(shareVal, min, max) : 'url(#not-published-hatch)';
+      // Fill using stepped color grading
+      const fillColor = isPublished ? COLOR_GRADES[gradeIdx] : 'url(#not-published-hatch)';
 
       const statePath = G20.svg('path', {
         d: path(feature),
@@ -196,6 +200,10 @@ window.renderChoroplethMap = function (data) {
         labelY = cy - 8;
       }
 
+      // High-contrast text label: light text on dark blue/navy grades (3 & 4), dark text on light grades (0, 1, 2)
+      const isDarkGrade = isPublished && gradeIdx >= 3;
+      const labelFill = isDarkGrade ? '#ffffff' : '#0f172a';
+
       // Render State Name and Share Value directly on the map
       const stateLabelG = G20.svg('text', {
         x: labelX,
@@ -211,7 +219,7 @@ window.renderChoroplethMap = function (data) {
         dy: isPublished ? '-0.5em' : '0',
         'font-weight': 800,
         'font-size': code === 'ACT' ? '12px' : '14px',
-        fill: '#0f172a'
+        fill: labelFill
       }, stateLabelG).textContent = code;
 
       // Real value line directly visible on the map
@@ -221,11 +229,11 @@ window.renderChoroplethMap = function (data) {
           dy: '1.25em',
           'font-weight': 700,
           'font-size': code === 'ACT' ? '11px' : '12px',
-          fill: '#0f172a'
+          fill: labelFill
         }, stateLabelG).textContent = `${shareVal.toFixed(1)}%`;
       }
 
-      // Rich Hover Tooltip with counts and rate per 100,000 residents
+      // Rich Hover Tooltip with counts and share percentage
       const showTooltip = event => {
         const bounds = svg.getBoundingClientRect();
         const pt = event.touches?.[0] || event;
@@ -236,9 +244,12 @@ window.renderChoroplethMap = function (data) {
         tooltipHtml += `<small style="color:#94a3b8">${user} · ${year}</small><br>`;
 
         if (isPublished) {
+          const fromRange = formatStep(gradeIdx * step);
+          const toRange = formatStep((gradeIdx + 1) * step);
           tooltipHtml += `Road user injuries: <strong>${G20.format(userCases)}</strong><br>`;
           tooltipHtml += `State total road injuries: <strong>${G20.format(totalStateCases)}</strong><br>`;
-          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong>`;
+          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong><br>`;
+          tooltipHtml += `<span style="display:inline-block; margin-top:4px; font-size:11.5px; color:#cbd5e1;">Color Grade: ${fromRange}–${toRange}% (Fixed Max: ${formatStep(maxCeil)}%)</span>`;
         } else {
           tooltipHtml += `<span style="color:#f87171">Status: Not published</span><br>`;
           tooltipHtml += `<small style="color:#cbd5e1">Data suppressed by AIHW/BITRE to protect privacy for small cell counts.</small>`;

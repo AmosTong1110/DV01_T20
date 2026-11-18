@@ -108,20 +108,11 @@ window.renderMultiLineChart = (function () {
 
     const x = year => margin.left + (width - margin.left - margin.right) * (year - 2011) / 10;
 
-    // Y-axis grid lines and clean tick labels
+    // Y-axis tick labels (horizontal grid lines removed)
     const tickCount = activeFilter === 'lowest5' ? 5 : 7;
     const yTicks = yScale.ticks(tickCount);
     yTicks.forEach(tickVal => {
       const lineY = yScale(tickVal);
-      G20.svg('line', {
-        x1: margin.left,
-        x2: width - margin.right,
-        y1: lineY,
-        y2: lineY,
-        class: 'grid-line',
-        stroke: '#e2e8f0',
-        'stroke-width': tickVal === 0 ? 1.5 : 1
-      }, svg);
 
       G20.svg('text', {
         x: margin.left - 12,

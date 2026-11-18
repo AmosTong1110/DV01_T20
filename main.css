@@ -581,11 +581,36 @@ a {
   font-weight: 600;
 }
 
-.map-gradient-row {
+.map-gradient-row,
+.map-stepped-legend-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 16px 24px;
+}
+
+.map-legend-grades {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.legend-grade-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.grade-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .gradient-bar-wrap {
