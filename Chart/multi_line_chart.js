@@ -78,7 +78,7 @@ window.renderMultiLineChart = (function () {
       const currentOpts = Array.from(selectElem.options || []).map(o => o.value);
       const targetOpts = ['__all__', ...displayedUsers];
       if (JSON.stringify(currentOpts) !== JSON.stringify(targetOpts)) {
-        selectElem.innerHTML = `<option value="__all__">All in ${activeFilter === 'top5' ? 'Top 5' : activeFilter === 'lowest5' ? 'Lowest 5' : 'all categories'}</option>` +
+        selectElem.innerHTML = `<option value="__all__">All in ${activeFilter === 'top5' ? 'Top 5' : 'Lowest 5'}</option>` +
           displayedUsers.map(u => `<option value="${u}">${u}</option>`).join('');
         selectElem.value = selected;
       }
@@ -172,24 +172,11 @@ window.renderMultiLineChart = (function () {
         style: 'cursor: pointer;'
       }, annotationsGroup);
 
-      // Pill container for milestone badge positioned right above top grid line
-      const badgeW = milestone.year === 2020 ? 118 : 128;
-      G20.svg('rect', {
-        x: mx - badgeW / 2,
-        y: margin.top - 20,
-        width: badgeW,
-        height: 17,
-        rx: 4,
-        fill: '#f8fafc',
-        stroke: '#cbd5e1',
-        'stroke-width': 1
-      }, badgeG);
-
       const textNode = G20.svg('text', {
         x: mx,
         y: margin.top - 7,
         'text-anchor': 'middle',
-        'font-size': '10.5px',
+        'font-size': '11px',
         'font-weight': 600,
         fill: '#475569'
       }, badgeG);
@@ -410,8 +397,7 @@ window.renderMultiLineChart = (function () {
 
       const filterConfigs = [
         { id: 'top5', label: '⭐ Top 5 Categories (High Volume)' },
-        { id: 'lowest5', label: '🔍 Lowest 5 Categories (Zoomed)' },
-        { id: 'all', label: 'All 12 Categories' }
+        { id: 'lowest5', label: '🔍 Lowest 5 Categories (Zoomed)' }
       ];
 
       filterConfigs.forEach(cfg => {
@@ -438,7 +424,7 @@ window.renderMultiLineChart = (function () {
       allPill.type = 'button';
       allPill.className = 'pill-btn';
       allPill.setAttribute('aria-pressed', selected === '__all__' ? 'true' : 'false');
-      allPill.innerHTML = `<span class="swatch" style="background:#475569"></span><span>All ${activeFilter === 'top5' ? 'Top 5' : activeFilter === 'lowest5' ? 'Lowest 5' : '12'}</span>`;
+      allPill.innerHTML = `<span class="swatch" style="background:#475569"></span><span>All ${activeFilter === 'top5' ? 'Top 5' : 'Lowest 5'}</span>`;
       allPill.addEventListener('click', () => {
         if (selectElem) {
           selectElem.value = '__all__';
@@ -478,8 +464,7 @@ window.renderMultiLineChart = (function () {
         const total2021 = groupRows2021.reduce((sum, r) => sum + G20.number(r['Sum(Hospitalisations)']), 0);
         const growth = total2011 ? ((total2021 - total2011) / total2011 * 100).toFixed(1) : 0;
 
-        const groupName = activeFilter === 'top5' ? 'the top 5 road-user categories' :
-          activeFilter === 'lowest5' ? 'the lowest 5 road-user categories' : 'all road-user categories';
+        const groupName = activeFilter === 'top5' ? 'the top 5 road-user categories' : 'the lowest 5 road-user categories';
 
         insightElem.innerHTML =
           `Between 2011 and 2021, hospitalisations across <strong>${groupName}</strong> rose by ` +
