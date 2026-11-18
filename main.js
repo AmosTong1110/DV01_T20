@@ -17,6 +17,8 @@ window.addEventListener('load', async () => {
     }
     G20.options('#q4Select', scatterUsers);
     G20.options('#q4Sex', ['All', 'Male', 'Female']);
+    G20.options('#q5Sex', ['All', 'Male', 'Female']);
+    document.querySelector('#q5Sex').options[0].textContent = 'All sexes';
 
     // Display the total number of hospitalisations in 2021.
     document.querySelector('#heroTotal').textContent = G20.format(
@@ -30,7 +32,7 @@ window.addEventListener('load', async () => {
       window.renderChoroplethMap(data.map);
       window.renderStackedBarChart(data.remoteness);
       window.renderScatterPlot(data.scatter);
-      window.renderStackedAreaChart(data.age);
+      window.renderAgeShareHeatmap(data.age);
     }
 
     const controlIds = [
@@ -48,6 +50,7 @@ window.addEventListener('load', async () => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', render);
     });
+    document.getElementById('q5Sex').addEventListener('change', render);
 
     render();
     window.addEventListener('resize', render);
