@@ -38,14 +38,34 @@ function loadAustralianStates() {
   return australianStates;
 }
 
+// Yellow to Dark Red sequential color ramp (YlOrRd)
+const YL_OR_RD_RAMP = [
+  [255, 255, 178], // 0.0: warm pale yellow (#ffffb2)
+  [254, 204, 92],  // 0.25: golden yellow-orange (#fecc5c)
+  [253, 141, 60],  // 0.50: vibrant orange (#fd8d3c)
+  [227, 26, 28],   // 0.75: vivid crimson red (#e31a1c)
+  [128, 0, 38]     // 1.0: deep dark red / burgundy (#800026)
+];
+
 function mapColor(value, min, max) {
-  if (max <= min) return '#225ea8';
+  if (max <= min) return '#bd0026';
   const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
 
-  if (window.d3 && d3.interpolateYlGnBu) {
-    return d3.interpolateYlGnBu(0.08 + 0.9 * ratio);
+  if (window.d3 && d3.interpolateYlOrRd) {
+    return d3.interpolateYlOrRd(0.04 + 0.96 * ratio);
   }
-  return '#225ea8';
+
+  const n = YL_OR_RD_RAMP.length - 1;
+  const scaled = ratio * n;
+  const idx = Math.min(n - 1, Math.floor(scaled));
+  const t = scaled - idx;
+  const c1 = YL_OR_RD_RAMP[idx];
+  const c2 = YL_OR_RD_RAMP[idx + 1];
+
+  const r = Math.round(c1[0] + (c2[0] - c1[0]) * t);
+  const g = Math.round(c1[1] + (c2[1] - c1[1]) * t);
+  const b = Math.round(c1[2] + (c2[2] - c1[2]) * t);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 window.renderChoroplethMap = function (data) {
