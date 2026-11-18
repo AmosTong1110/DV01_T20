@@ -38,27 +38,14 @@ function loadAustralianStates() {
   return australianStates;
 }
 
-// High-contrast, 5-grade stepped color palette for choropleth mapping
-// Ranging from soft lime-yellow (Grade 1) to deep midnight navy (Grade 5)
-const COLOR_GRADES = [
-  '#edf8b1', // Grade 1 (0 – 20% of max): soft lime-yellow
-  '#7fcdbb', // Grade 2 (20 – 40% of max): fresh seafoam turquoise
-  '#1d91c0', // Grade 3 (40 – 60% of max): electric cyan-blue
-  '#225ea8', // Grade 4 (60 – 80% of max): rich royal cobalt
-  '#081d58'  // Grade 5 (80 – 100% of max): deep midnight navy
-];
+function mapColor(value, min, max) {
+  if (max <= min) return '#225ea8';
+  const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
 
-function getNiceCeil(val) {
-  if (val <= 1.5) return 1.5;
-  if (val <= 3) return 3;
-  if (val <= 6) return 6;
-  if (val <= 12) return 12;
-  if (val <= 15) return 15;
-  if (val <= 25) return 25;
-  if (val <= 35) return 35;
-  if (val <= 50) return 50;
-  if (val <= 60) return 60;
-  return Math.ceil(val / 10) * 10;
+  if (window.d3 && d3.interpolateYlGnBu) {
+    return d3.interpolateYlGnBu(0.08 + 0.9 * ratio);
+  }
+  return '#225ea8';
 }
 
 window.renderChoroplethMap = function (data) {
@@ -71,72 +58,47 @@ window.renderChoroplethMap = function (data) {
   const year = (yearInput && yearInput.value && !isNaN(+yearInput.value)) ? +yearInput.value : 2021;
   const user = (userSelect && userSelect.value) ? userSelect.value : (data[0]?.['road user'] || 'Car driver, passenger or unknown position');
 
-  // Fixed max percentage across ALL years for the selected road user
-  // Guarantees stable, fixed color grading across years so differences stand out and comparisons are valid
-  const userPublishedAllYears = data.filter(row => row['road user'] === user && row.Status === 'Published');
-  const maxShareAllYears = userPublishedAllYears.length
-    ? Math.max(...userPublishedAllYears.map(row => G20.number(row['Percent share'])))
-    : 1;
-  const maxCeil = getNiceCeil(maxShareAllYears);
-  const step = maxCeil / 5;
-
-  const getGradeIndex = val => {
-    if (val <= 0) return 0;
-    const idx = Math.floor(val / step);
-    return Math.min(4, Math.max(0, idx));
-  };
-
   const rows = data.filter(row => +row['calendar year'] === year && row['road user'] === user);
   const published = rows.filter(row => row.Status === 'Published');
+  const values = published.map(row => G20.number(row['Percent share']));
+
+  // Calculate dynamic range for the selected category and year
+  // For Bus occupant (or when values are very small), range starts at 0%
+  // For Car driver (31.6-52.4%) and others, range spans the actual min to max
+  let min = values.length ? Math.min(...values) : 0;
+  let max = values.length ? Math.max(...values) : 1;
+
+  if (user === 'Bus occupant' || min < 0.2) {
+    min = 0;
+  }
+  if (max <= min) {
+    max = min + 1;
+  }
 
   const yearOut = document.querySelector('#q2YearValue');
   if (yearOut) yearOut.value = year;
 
-  // SVG Defs for Hatch Pattern (for "Not published" states)
-  const defs = G20.svg('defs', {}, svg);
-  const pattern = G20.svg('pattern', {
-    id: 'not-published-hatch',
-    width: '8',
-    height: '8',
-    patternTransform: 'rotate(45 0 0)',
-    patternUnits: 'userSpaceOnUse'
-  }, defs);
-  G20.svg('rect', { width: '8', height: '8', fill: '#f8fafc' }, pattern);
-  G20.svg('line', {
-    x1: '0',
-    y1: '0',
-    x2: '0',
-    y2: '8',
-    stroke: '#94a3b8',
-    'stroke-width': '2.5'
-  }, pattern);
+  // Gradient colors for intensity bar
+  const minColor = mapColor(min, min, max);
+  const midColor = mapColor((min + max) / 2, min, max);
+  const maxColor = mapColor(max, min, max);
 
-  // Update Legend with Fixed Stepped Color Grading
-  const formatStep = n => (n % 1 === 0 ? n.toFixed(0) : n.toFixed(1));
+  // Update Legend with clean gradient intensity bar (without 'Not published' backslash column)
   const legendElem = document.querySelector('#mapLegend');
   if (legendElem) {
     legendElem.innerHTML = `
       <div class="map-legend-container">
         <div class="legend-header">
-          <strong>Color Grading: Share of jurisdiction's total road injuries (%) — Fixed Scale: 0 to ${formatStep(maxCeil)}%</strong>
+          <strong>Color Intensity: Share of state's road injuries (${G20.escape(user)}) — Range: ${min.toFixed(1)}% to ${max.toFixed(1)}%</strong>
         </div>
-        <div class="map-stepped-legend-row">
-          <div class="map-legend-grades">
-            ${COLOR_GRADES.map((col, i) => {
-              const fromVal = formatStep(i * step);
-              const toVal = formatStep((i + 1) * step);
-              const isDarkSwatch = i >= 3;
-              return `
-                <div class="legend-grade-item">
-                  <span class="grade-swatch" style="background:${col}; border:1px solid ${isDarkSwatch ? 'rgba(0,0,0,0.1)' : '#94a3b8'};"></span>
-                  <span class="grade-label">${fromVal}–${toVal}%</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-          <div class="map-legend-np-item">
-            <span class="np-hatch-swatch"></span>
-            <span>Not published</span>
+        <div class="map-gradient-row">
+          <div class="gradient-bar-wrap">
+            <div class="map-gradient-bar" style="background: linear-gradient(to right, ${minColor}, ${midColor}, ${maxColor});"></div>
+            <div class="map-gradient-ticks">
+              <span>Lowest: <strong>${min.toFixed(1)}%</strong></span>
+              <span>Mid: <strong>${((min + max) / 2).toFixed(1)}%</strong></span>
+              <span>Highest: <strong>${max.toFixed(1)}%</strong></span>
+            </div>
           </div>
         </div>
       </div>
@@ -161,15 +123,14 @@ window.renderChoroplethMap = function (data) {
       const shareVal = row ? G20.number(row['Percent share']) : 0;
       const userCases = row ? G20.number(row['road_user_cases']) : 0;
       const totalStateCases = row ? G20.number(row['state_total_cases']) : 0;
-      const gradeIdx = isPublished ? getGradeIndex(shareVal) : -1;
 
-      // Fill using stepped color grading
-      const fillColor = isPublished ? COLOR_GRADES[gradeIdx] : 'url(#not-published-hatch)';
+      // Color intensity fill; unpublished states use solid neutral gray without backslashes
+      const fillColor = isPublished ? mapColor(shareVal, min, max) : '#f1f5f9';
 
       const statePath = G20.svg('path', {
         d: path(feature),
         fill: fillColor,
-        stroke: '#ffffff',
+        stroke: isPublished ? '#ffffff' : '#cbd5e1',
         'stroke-width': 1.8,
         'vector-effect': 'non-scaling-stroke',
         class: 'state-polygon',
@@ -200,11 +161,7 @@ window.renderChoroplethMap = function (data) {
         labelY = cy - 8;
       }
 
-      // High-contrast text label: light text on dark blue/navy grades (3 & 4), dark text on light grades (0, 1, 2)
-      const isDarkGrade = isPublished && gradeIdx >= 3;
-      const labelFill = isDarkGrade ? '#ffffff' : '#0f172a';
-
-      // Render State Name and Share Value directly on the map
+      // State label styling: uniform dark slate with white halo for clean readability
       const stateLabelG = G20.svg('text', {
         x: labelX,
         y: labelY,
@@ -219,7 +176,7 @@ window.renderChoroplethMap = function (data) {
         dy: isPublished ? '-0.5em' : '0',
         'font-weight': 800,
         'font-size': code === 'ACT' ? '12px' : '14px',
-        fill: labelFill
+        fill: '#0f172a'
       }, stateLabelG).textContent = code;
 
       // Real value line directly visible on the map
@@ -229,7 +186,7 @@ window.renderChoroplethMap = function (data) {
           dy: '1.25em',
           'font-weight': 700,
           'font-size': code === 'ACT' ? '11px' : '12px',
-          fill: labelFill
+          fill: '#0f172a'
         }, stateLabelG).textContent = `${shareVal.toFixed(1)}%`;
       }
 
@@ -244,14 +201,11 @@ window.renderChoroplethMap = function (data) {
         tooltipHtml += `<small style="color:#94a3b8">${user} · ${year}</small><br>`;
 
         if (isPublished) {
-          const fromRange = formatStep(gradeIdx * step);
-          const toRange = formatStep((gradeIdx + 1) * step);
           tooltipHtml += `Road user injuries: <strong>${G20.format(userCases)}</strong><br>`;
           tooltipHtml += `State total road injuries: <strong>${G20.format(totalStateCases)}</strong><br>`;
-          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong><br>`;
-          tooltipHtml += `<span style="display:inline-block; margin-top:4px; font-size:11.5px; color:#cbd5e1;">Color Grade: ${fromRange}–${toRange}% (Fixed Max: ${formatStep(maxCeil)}%)</span>`;
+          tooltipHtml += `<strong>Share of state's total: ${shareVal.toFixed(1)}%</strong>`;
         } else {
-          tooltipHtml += `<span style="color:#f87171">Status: Not published</span><br>`;
+          tooltipHtml += `<span style="color:#64748b">Status: Not published</span><br>`;
           tooltipHtml += `<small style="color:#cbd5e1">Data suppressed by AIHW/BITRE to protect privacy for small cell counts.</small>`;
         }
 

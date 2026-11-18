@@ -616,8 +616,8 @@ a {
 .gradient-bar-wrap {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  width: 210px;
+  gap: 4px;
+  width: 280px;
 }
 
 .map-gradient-bar {
