@@ -15,7 +15,7 @@
   <script defer src="Chart/choropleth_map.js"></script>
   <script defer src="Chart/stacked_bar_chart.js"></script>
   <script defer src="Chart/scatter_plot.js"></script>
-  <script defer src="Chart/stacked_area_chart.js"></script>
+  <script defer src="Chart/heat_map.js"></script>
   <script defer src="main.js"></script>
 </head>
 
@@ -203,21 +203,26 @@
       <p class="insight" id="q4Insight"></p>
     </article>
 
-    <!-- Chart 5: Age distribution over time -->
+    <!-- Chart 5: Age-group share heat map -->
     <article class="chart-section" id="q5">
       <div class="question">
         <span>05</span>
         <div>
           <p class="eyebrow">AGE GROUP SHARES</p>
-          <h3>How have age-group shares of road-injury hospitalisations changed from 2011 to 2021?</h3>
+          <h3>How do age-group shares of road-injury hospitalisations vary from 2011 to 2021?</h3>
         </div>
       </div>
-      <div class="age-filter-buttons" id="q5AgeFilter" role="toolbar" aria-label="Filter by age group"></div>
-      <div class="chart-shell area-chart-shell">
-        <svg id="areaChart" role="img"
-          aria-label="100 percent stacked area chart of age-group hospitalisation shares from 2011 to 2021"></svg>
+      <div class="toolbar" role="group" aria-label="Heat map filters">
+        <label>
+          Sex
+          <select id="q5Sex" aria-label="Filter by sex"></select>
+        </label>
       </div>
-      <p class="insight" id="q5Insight">Shares are calculated across all sexes within each year.</p>
+      <div class="chart-shell heatmap-chart-shell">
+        <svg id="heatmapChart" role="img"
+          aria-label="Heat map of all-sex hospitalisation shares by age group and year from 2011 to 2021"></svg>
+      </div>
+      <p class="insight" id="q5Insight">Male and female counts are combined before calculating each share. The 40-64 age group had the highest share in every year from 2011 through 2021. The colour scale is fixed from 0% to 33%.</p>
     </article>
   </section>
   <section id="method" class="method">

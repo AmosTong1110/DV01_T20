@@ -257,105 +257,36 @@ a {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-.area-chart-shell {
+.heatmap-chart-shell {
   overflow: visible;
-  height: 500px;
+  height: 540px;
 }
 
-/* Chart 5: Age Filter Buttons */
-.age-filter-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  margin: 10px 0 14px;
+.heatmap-cell {
+  transition: opacity 0.15s ease;
 }
 
-.age-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--ink);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.heatmap-cell:hover {
+  stroke: #17232e;
+  stroke-width: 3px;
 }
 
-.age-btn:hover,
-.age-btn:focus-visible {
-  border-color: var(--teal);
-  background: #f0fdf4;
-}
-
-.age-btn.active,
-.age-btn[aria-pressed="true"] {
-  border-color: var(--teal);
-  background: #e6f4f1;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.age-btn-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.area-grid-line {
-  stroke: #596b72;
-  stroke-width: 1;
-  stroke-dasharray: 1.5 4;
-  stroke-linecap: round;
-  opacity: 0.75;
-  pointer-events: none;
-}
-
-.area-axis-text {
+#heatmapChart .heatmap-axis-label,
+#heatmapChart .heatmap-legend-label {
   fill: var(--muted);
   font-size: 12px;
 }
 
-.area-axis-title {
+#heatmapChart .heatmap-axis-title {
   fill: var(--ink);
   font-size: 12px;
   font-weight: 700;
 }
 
-.q5-age-area {
-  stroke-linejoin: round;
+#heatmapChart .heatmap-cell-label {
+  fill: #ffffff;
+  font-weight: 700;
   pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-.q5-age-area-interactive {
-  pointer-events: all;
-}
-
-.q5-age-area.is-highlighted {
-  opacity: 0.9;
-}
-
-.q5-age-area.is-dimmed {
-  opacity: 0.18;
-}
-
-.q5-age-point {
-  cursor: pointer;
-  transition: opacity 0.2s ease, r 0.2s ease;
-}
-
-.q5-age-point:focus-visible {
-  outline: none;
-  stroke: #17232e;
-  stroke-width: 2.5px;
 }
 
 .chart-shell svg {
@@ -877,7 +808,7 @@ footer span:last-child {
     height: 270px;
   }
 
-  .area-chart-shell {
+  .heatmap-chart-shell {
     height: 420px;
   }
 
