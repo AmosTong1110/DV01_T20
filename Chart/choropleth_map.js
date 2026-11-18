@@ -38,22 +38,19 @@ function loadAustralianStates() {
   return australianStates;
 }
 
-// Yellow to Dark Red sequential color ramp (YlOrRd)
+// Ultra high-contrast Yellow to Dark Red sequential color ramp
+// Maximizes visual distinction across pale yellow, golden amber, fiery vermilion, ruby crimson, and deep dark burgundy
 const YL_OR_RD_RAMP = [
   [255, 255, 178], // 0.0: warm pale yellow (#ffffb2)
-  [254, 204, 92],  // 0.25: golden yellow-orange (#fecc5c)
-  [253, 141, 60],  // 0.50: vibrant orange (#fd8d3c)
-  [227, 26, 28],   // 0.75: vivid crimson red (#e31a1c)
-  [128, 0, 38]     // 1.0: deep dark red / burgundy (#800026)
+  [254, 178, 76],  // 0.25: golden amber (#feb24c)
+  [253, 92, 34],   // 0.50: vivid vermilion orange (#fd5c22)
+  [215, 25, 28],   // 0.75: ruby crimson (#d7191c)
+  [103, 0, 31]     // 1.0: deep dark burgundy (#67001f)
 ];
 
 function mapColor(value, min, max) {
-  if (max <= min) return '#bd0026';
+  if (max <= min) return 'rgb(215, 25, 28)';
   const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
-
-  if (window.d3 && d3.interpolateYlOrRd) {
-    return d3.interpolateYlOrRd(0.04 + 0.96 * ratio);
-  }
 
   const n = YL_OR_RD_RAMP.length - 1;
   const scaled = ratio * n;
@@ -82,28 +79,19 @@ window.renderChoroplethMap = function (data) {
   const published = rows.filter(row => row.Status === 'Published');
   const values = published.map(row => G20.number(row['Percent share']));
 
-  // Calculate dynamic range for the selected category and year
-  // For Bus occupant (or when values are very small), range starts at 0%
-  // For Car driver (31.6-52.4%) and others, range spans the actual min to max
+  // True dynamic range from actual lowest to highest published share
+  // This utilizes 100% of the color intensity scale for maximum contrast between states
   let min = values.length ? Math.min(...values) : 0;
   let max = values.length ? Math.max(...values) : 1;
 
-  if (user === 'Bus occupant' || min < 0.2) {
-    min = 0;
-  }
   if (max <= min) {
-    max = min + 1;
+    max = min + 0.5;
   }
 
   const yearOut = document.querySelector('#q2YearValue');
   if (yearOut) yearOut.value = year;
 
-  // Gradient colors for intensity bar
-  const minColor = mapColor(min, min, max);
-  const midColor = mapColor((min + max) / 2, min, max);
-  const maxColor = mapColor(max, min, max);
-
-  // Update Legend with clean gradient intensity bar (without 'Not published' backslash column)
+  // Update Legend with high-contrast gradient bar
   const legendElem = document.querySelector('#mapLegend');
   if (legendElem) {
     legendElem.innerHTML = `
@@ -113,7 +101,7 @@ window.renderChoroplethMap = function (data) {
         </div>
         <div class="map-gradient-row">
           <div class="gradient-bar-wrap">
-            <div class="map-gradient-bar" style="background: linear-gradient(to right, ${minColor}, ${midColor}, ${maxColor});"></div>
+            <div class="map-gradient-bar" style="background: linear-gradient(to right, rgb(255, 255, 178), rgb(254, 178, 76), rgb(253, 92, 34), rgb(215, 25, 28), rgb(103, 0, 31));"></div>
             <div class="map-gradient-ticks">
               <span>Lowest: <strong>${min.toFixed(1)}%</strong></span>
               <span>Mid: <strong>${((min + max) / 2).toFixed(1)}%</strong></span>
